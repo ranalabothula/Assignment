@@ -55,8 +55,8 @@ for row in rows:
 #print(newrows[10])
 
 #Identify the required variables - 'Salary Range To',''
-
 def getCategoriesWithHighPay(rows):
+    global Q3
     listOfSalaries = []
     for row in rows:
         #print(row[schema["Salary Range To"]])
@@ -123,6 +123,7 @@ def normalizeSalaries(rows):
 
 def getSkillsWithHighPay(rawCategoriesWithHighPay):
     skillsWithHighPay = set()
+    splitSkills = []
     for row in rawCategoriesWithHighPay:
         skillInTable = row[schemanormal["Preferred Skills"]]
         if (str(skillInTable).__contains__(";")) :
@@ -130,9 +131,15 @@ def getSkillsWithHighPay(rawCategoriesWithHighPay):
         elif(str(skillInTable).__contains__("o\s")):
                 splitSkills = re.split('o\s', str(skillInTable))
         else:
-            splitSkills = re.split('\d.',str(skillInTable))
+            if (re.match("(?:^\w{1}[.0-1])",skillInTable)):
+                #print(skillInTable)
+                splitSkills = re.split('\d.',str(skillInTable))
+                #print(splitSkills)
         for skill in splitSkills:
-            skillsWithHighPay.add(skill.strip());
+            stripSkill = re.sub(r'^\.','',skill)
+            # if(stripSkill.startswith("PREFERRED SKILLS")):
+            #     stripSkill = stripSkill[len("PREFERRED SKILLS"):]
+            skillsWithHighPay.add(stripSkill.strip())
 
     return skillsWithHighPay
 
@@ -150,10 +157,46 @@ def getCleanedData(rows):
     #     print(newRow)
     return newRows
 
+
+def removeSkillsInLowPay(allSkillsWithHighPay,salNormalizedRows,maxSalary):
+    removableSkills = set()
+    for row in salNormalizedRows:
+        if (float(row[schemanormal["Salary Range To"]]) < float(maxSalary)) :
+            for skill in allSkillsWithHighPay:
+                if (row[schemanormal["Preferred Skills"]].__contains__(skill)) :
+                    removableSkills.add(skill)
+    for skill in removableSkills:
+        allSkillsWithHighPay.remove(skill)
+            # if any(ext in row[schemanormal["Preferred Skills"]] for ext in allSkillsWithHighPay):
+            #     #print("removing "+row[schemanormal["Preferred Skills"]])
+            #     allSkillsWithHighPay.remove(row[schemanormal["Preferred Skills"]])
+    return allSkillsWithHighPay
+
+
+def getJobCategoriesWithHighPaySkills(finalSkillsWithHighPay,salNormalizedRows):
+    setOfJobCategories = set()
+    for row in salNormalizedRows:
+        for skill in finalSkillsWithHighPay:
+            if (row[schemanormal["Preferred Skills"]].__contains__(skill)) :
+                setOfJobCategories.add(row[schemanormal["Job Category"]])
+        # if any(ext in row[schemanormal["Job Category"]] for ext in finalSkillsWithHighPay):
+        #     setOfJobCategories.add(row[schemanormal["Job Category"]])
+    return setOfJobCategories
+
 if __name__ == '__main__':
+    global Q3
     cleanData = getCleanedData(rows)
     salNormalizedRows = normalizeSalaries(cleanData)
     rawCategoriesWithHighPay = getCategoriesWithHighPay(salNormalizedRows)
+    #print(Q3)
     #print(rawCategoriesWithHighPay.__len__())
     allSkillsWithHighPay = getSkillsWithHighPay(rawCategoriesWithHighPay)
-    
+    # for skill in allSkillsWithHighPay:
+    #     print(skill)
+    #problem 1
+    finalSkillsWithHighPay = removeSkillsInLowPay(allSkillsWithHighPay,salNormalizedRows,Q3)
+    # for skill in finalSkillsWithHighPay:
+    #     print(skill)
+    #problem 2
+    jobCategoriesWithHighPaySkills = getJobCategoriesWithHighPaySkills(finalSkillsWithHighPay,salNormalizedRows)
+    print(jobCategoriesWithHighPaySkills)
